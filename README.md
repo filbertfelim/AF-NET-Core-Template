@@ -33,7 +33,7 @@ In the shell script, there are also multiple modifiable variables with the defau
 - **API_PROJECT_NAME** ( the name of the API / Functions project ) : **Api**
 - **SERVICE_PROJECT_NAME** ( the name of the Service project ) : **Service**
 - **DAL_PROJECT_NAME** ( the name of the DAL project ) : **DAL**
-
-**ApiProjectName** should be the same as **API_PROJECT_NAME**
-**ServiceProjectName** should be the same as **SERVICE_PROJECT_NAME**
-**DalProjectName** should be the same as **DAL_PROJECT_NAME**
+---
+- **ApiProjectName** should be the same as **API_PROJECT_NAME**
+- **ServiceProjectName** should be the same as **SERVICE_PROJECT_NAME**
+- **DalProjectName** should be the same as **DAL_PROJECT_NAME**
