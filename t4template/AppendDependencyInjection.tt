@@ -1,0 +1,63 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+
+<#
+// modifiable
+string entityName = "Product";
+string ApiProjectName = "Api";
+string ServiceProjectName = "Service";
+string DALProjectName = "DAL";
+string rootFolder = "TestProject";
+
+// don't modify this
+string serviceInterfaceName = $"I{entityName}Service";
+string serviceClassName = $"{entityName}Service";
+string repositoryInterfaceName = $"I{entityName}Repository";
+string repositoryClassName = $"{entityName}Repository";
+string programCsPath = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), $"../{ApiProjectName}/Program.cs"); // Adjust the path to your Program.cs file
+
+// Read the existing content of the Program.cs file
+string programCsContent = File.ReadAllText(programCsPath);
+
+// Define the necessary using statements
+string dalUsingStatement = $"using {rootFolder}.{DALProjectName}.Interfaces;";
+string serviceUsingStatement = $"using {rootFolder}.{ServiceProjectName}.Interfaces;";
+
+// Check if the using statements are already present
+if (!programCsContent.Contains(dalUsingStatement))
+{
+     programCsContent = dalUsingStatement + Environment.NewLine + programCsContent;
+}
+
+if (!programCsContent.Contains(serviceUsingStatement))
+{
+    programCsContent = serviceUsingStatement + Environment.NewLine + programCsContent;
+}
+
+// Check if the service and repository are already registered
+if (!programCsContent.Contains(serviceInterfaceName) && !programCsContent.Contains(repositoryInterfaceName))
+{
+    // Create the new registration code
+    string newRegistrations = $@"
+        services.AddScoped<{serviceInterfaceName}, {serviceClassName}>();
+        services.AddScoped<{repositoryInterfaceName}, {repositoryClassName}>();
+        ";
+
+    // Find the position to insert the new registrations
+    int insertPosition = programCsContent.IndexOf("ConfigureServices(services =>");
+    if (insertPosition != -1)
+    {
+        // Find the end of the services configuration method
+        int servicesConfigurationEnd = programCsContent.IndexOf("})", insertPosition);
+        if (servicesConfigurationEnd != -1)
+        {
+            // Insert the new registrations before the end of the ConfigureServices method
+            programCsContent = programCsContent.Insert(servicesConfigurationEnd, newRegistrations);
+        }
+    }
+
+    // Write the updated content back to the Program.cs file
+    File.WriteAllText(programCsPath, programCsContent);
+}
+#>

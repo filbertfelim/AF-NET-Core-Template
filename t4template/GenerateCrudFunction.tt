@@ -1,0 +1,115 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.IO" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Threading.Tasks" #>
+
+<#
+    // modifiable
+    string entityName = "Product";
+    string ApiProjectName = "Api";
+    string ServiceProjectName = "Service";
+    string DALProjectName = "DAL";
+    string rootFolder = "TestProject";
+
+    // don't modify this
+    string namespaceName = $"{rootFolder}.{ApiProjectName}.Functions";
+
+    // Determine the output folder relative to the template file
+    string templateDirectory = Path.GetDirectoryName(Host.TemplateFile);
+    string outputFolder = Path.Combine(templateDirectory, $"../{ApiProjectName}/Functions");
+
+    if (!Directory.Exists(outputFolder))
+    {
+        Directory.CreateDirectory(outputFolder);
+    }
+
+    // Determine the output file path
+    string outputFilePath = Path.Combine(outputFolder, $"{entityName}Api.cs");
+
+    // Generate the content
+    string content = $@"
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using {rootFolder}.{ServiceProjectName}.Interfaces;
+using {rootFolder}.{DALProjectName}.DTO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using System.Net;
+
+namespace {namespaceName}
+{{
+    public class {entityName}Api
+    {{
+        private readonly I{entityName}Service _{entityName.ToLower()}Service;
+
+        public {entityName}Api(I{entityName}Service service)
+        {{
+            _{entityName.ToLower()}Service = service;
+        }}
+
+        [Function(""{entityName}Create"")]
+        public async Task<IActionResult> Create(
+            [HttpTrigger(AuthorizationLevel.Anonymous, ""post"", Route = ""{entityName.ToLower()}"")] HttpRequest req)
+        {{
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var data = JsonConvert.DeserializeObject<{entityName}Dto>(requestBody);
+            var result = await _{entityName.ToLower()}Service.Create(data);
+
+            return new OkObjectResult(result);
+        }}
+
+        [Function(""{entityName}Read"")]
+        public async Task<IActionResult> Read(
+            [HttpTrigger(AuthorizationLevel.Anonymous, ""get"", Route = ""{entityName.ToLower()}/{{id}}"")] HttpRequest req,
+            string id)
+        {{
+            var result = await _{entityName.ToLower()}Service.Read(id);
+
+            if (result == null)
+            {{
+                return new NotFoundResult();
+            }}
+
+            return new OkObjectResult(result);
+        }}
+
+        [Function(""{entityName}Update"")]
+        public async Task<IActionResult> Update(
+            [HttpTrigger(AuthorizationLevel.Anonymous, ""put"", Route = ""{entityName.ToLower()}/{{id}}"")] HttpRequest req,
+            string id)
+        {{
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var data = JsonConvert.DeserializeObject<{entityName}Dto>(requestBody);
+            var result = await _{entityName.ToLower()}Service.Update(id, data);
+
+            if (result == null)
+            {{
+                return new NotFoundResult();
+            }}
+
+            return new OkObjectResult(result);
+        }}
+
+        [Function(""{entityName}Delete"")]
+        public async Task<IActionResult> Delete(
+            [HttpTrigger(AuthorizationLevel.Anonymous, ""delete"", Route = ""{entityName.ToLower()}/{{id}}"")] HttpRequest req,
+            string id)
+        {{
+            var result = await _{entityName.ToLower()}Service.Delete(id);
+
+            if (!result)
+            {{
+                return new NotFoundResult();
+            }}
+
+            return new OkResult();
+        }}
+    }}
+}}";
+
+    // Write the content to the specified file path
+    System.IO.File.WriteAllText(outputFilePath, content);
+#>

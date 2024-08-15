@@ -1,0 +1,146 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+
+<#
+    // Parameters
+    string entityName = "Product";
+    string DALProjectName = "DAL";
+    string rootFolder = "TestProject";
+    
+    string modelNamespace = $"{rootFolder}.{DALProjectName}.Models"; 
+    string repositoryNamespace = $"{rootFolder}.{DALProjectName}.Interfaces"; 
+    string testNamespace = $"{rootFolder}.{DALProjectName}.Tests"; 
+    string repositoryClassName = $"{entityName}Repository";
+    string testClassName = $"{repositoryClassName}Test";
+    string repositoryInterfaceName = $"I{entityName}Repository";
+    string modelClassName = $"{entityName}";
+    string modelFilePath = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), $"../{DALProjectName}/Models/{entityName}.cs");
+
+    // Output folder path
+    string outputFolder = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), $"../{DALProjectName}.Tests/Tests");
+
+    if (!Directory.Exists(outputFolder))
+    {
+        Directory.CreateDirectory(outputFolder);
+    }
+
+    string outputFilePath = Path.Combine(outputFolder, $"{testClassName}.cs");
+    
+    string modelFileContent = File.ReadAllText(modelFilePath);
+    
+    string entityJsonBody = "{";
+    string entityInstantiation = $"var entity = new {entityName} {{ ";
+
+    // Manually handling the string operations instead of using LINQ
+    string[] entityLines = modelFileContent.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+    int entityPropertyCount = 0;
+
+    foreach (var line in entityLines)
+    {
+        string trimmedLine = line.Trim();
+
+        // Ensure that the line starts with "public" and is not a class declaration
+        if (trimmedLine.StartsWith("public") && trimmedLine.Contains("{ get; set; }"))
+        {
+            string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3)
+            {
+                string propertyType = parts[1];
+                string propertyName = parts[2].TrimEnd(';');
+
+                if (entityPropertyCount > 0)
+                {
+                    entityJsonBody += ",";
+                    entityInstantiation += ", ";
+                }
+
+                entityJsonBody += $@" \""{propertyName}\"": \""Test {propertyName}\""";
+                entityInstantiation += $"{propertyName} = \"Test {propertyName}\"";
+
+                entityPropertyCount++;
+            }
+        }
+    }
+
+    entityJsonBody += "}";
+    entityInstantiation += " };";
+
+    // Generate the test class content
+    string content = $@"
+using {modelNamespace};
+using {repositoryNamespace};
+using Xunit;
+using System.Threading.Tasks;
+
+namespace {testNamespace}
+{{
+    public class {testClassName}
+    {{
+        private readonly {repositoryClassName} _repository;
+
+        public {testClassName}()
+        {{
+            _repository = new {repositoryClassName}();
+        }}
+
+        [Fact]
+        public async Task Create_CanBeCalled()
+        {{
+            // Arrange
+            {entityInstantiation}
+
+            // Act
+            await _repository.Create(entity);
+
+            // Assert
+            // Since the method is not implemented, just ensuring it can be called
+            Assert.True(true);
+        }}
+
+        [Fact]
+        public async Task Read_ReturnsNull_WhenNotImplemented()
+        {{
+            // Arrange
+            var id = ""Test Id"";
+
+            // Act
+            var result = await _repository.Read(id);
+
+            // Assert
+            Assert.Null(result); // Expected to be null since the method is not implemented
+        }}
+
+        [Fact]
+        public async Task Update_ReturnsNull_WhenNotImplemented()
+        {{
+            // Arrange
+            {entityInstantiation}
+
+            // Act
+            var result = await _repository.Update(entity);
+
+            // Assert
+            Assert.Null(result); // Expected to be null since the method is not implemented
+        }}
+
+        [Fact]
+        public async Task Delete_ReturnsTrue_WhenNotImplemented()
+        {{
+            // Arrange
+            var id = ""Test Id"";
+
+            // Act
+            var result = await _repository.Delete(id);
+
+            // Assert
+            Assert.True(result); // Expected to be true since the method returns true by default
+        }}
+    }}
+}}
+";
+
+    // Write the generated content to the specified file path
+    File.WriteAllText(outputFilePath, content);
+#>

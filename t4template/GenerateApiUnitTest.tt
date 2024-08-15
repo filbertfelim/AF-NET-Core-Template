@@ -1,0 +1,226 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Reflection" #>
+
+
+<#
+    // modifiable
+    string entityName = "Product";
+    string ApiProjectName = "Api";
+    string ServiceProjectName = "Service";
+    string DALProjectName = "DAL";
+    string rootFolder = "TestProject";
+
+
+    // don't modify this
+    string functionClassName = $"{entityName}Api";
+    string dtoNamespace = $"{rootFolder}.{DALProjectName}.DTO";
+    string dtoClassName = $"{dtoNamespace}.{entityName}Dto";
+    string serviceInterfaceName = $"I{entityName}Service";
+    string testNamespace = $"{rootFolder}.{ApiProjectName}.Tests.Tests";
+    string serviceNamespace = $"{rootFolder}.{ServiceProjectName}.Interfaces";
+    string functionNamespace = $"{rootFolder}.{ApiProjectName}.Functions";
+    string testClassName = $"{entityName}ApiTest";
+    string dtoFilePath = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), $"../{DALProjectName}/DTO/{entityName}Dto.cs");
+    string outputFolder = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), $"../{ApiProjectName}.Tests/Tests");
+
+    if (!Directory.Exists(outputFolder))
+    {
+        Directory.CreateDirectory(outputFolder);
+    }
+
+    string outputFilePath = Path.Combine(outputFolder, $"{testClassName}.cs");
+
+    // Read the ProductDto file
+    string dtoFileContent = File.ReadAllText(dtoFilePath);
+
+    // Extract properties from the ProductDto file
+    string jsonBody = "{";
+    string dtoInstantiation = $"var dto = new {entityName}Dto {{ ";
+    
+    // Manually handling the string operations instead of using LINQ
+    string[] lines = dtoFileContent.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+    int propertyCount = 0;
+    
+    foreach (var line in lines)
+    {
+        string trimmedLine = line.Trim();
+
+        // Ensure that the line starts with "public" and is not a class declaration
+        if (trimmedLine.StartsWith("public") && trimmedLine.Contains("{ get; set; }"))
+        {
+            string[] parts = trimmedLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3)
+            {
+                string propertyType = parts[1];
+                string propertyName = parts[2].TrimEnd(';');
+
+                if (propertyCount > 0)
+                {
+                    jsonBody += ",";
+                    dtoInstantiation += ", ";
+                }
+
+                jsonBody += $@" \""{propertyName}\"": \""Test {propertyName}\""";
+                dtoInstantiation += $"{propertyName} = \"Test {propertyName}\"";
+
+                propertyCount++;
+            }
+        }
+    }
+    
+    jsonBody += "}";
+    dtoInstantiation += " };";
+
+    string content = $@"
+using {functionNamespace};
+using {serviceNamespace};
+using {dtoNamespace};
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using Newtonsoft.Json;
+using Xunit;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace {testNamespace}
+{{
+    public class {testClassName}
+    {{
+        private readonly Mock<{serviceInterfaceName}> _mockService;
+        private readonly {functionClassName} _function;
+
+        public {testClassName}()
+        {{
+            _mockService = new Mock<{serviceInterfaceName}>();
+            _function = new {functionClassName}(_mockService.Object);
+        }}
+
+        [Fact]
+        public async Task Create_ReturnsOkResult_WhenValidRequest()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest(""{jsonBody}"");
+            {dtoInstantiation}
+            _mockService.Setup(service => service.Create(It.IsAny<{entityName}Dto>())).ReturnsAsync(dto);
+
+            // Act
+            var result = await _function.Create(httpRequest);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnValue = Assert.IsType<{entityName}Dto>(okResult.Value);
+            Assert.Equal(dto.Id, returnValue.Id);
+        }}
+
+        [Fact]
+        public async Task Read_ReturnsOkResult_WhenEntityFound()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest();
+            {dtoInstantiation}
+            _mockService.Setup(service => service.Read(It.IsAny<string>())).ReturnsAsync(dto);
+
+            // Act
+            var result = await _function.Read(httpRequest, ""Test Id"");
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnValue = Assert.IsType<{entityName}Dto>(okResult.Value);
+            Assert.Equal(dto.Id, returnValue.Id);
+        }}
+
+        [Fact]
+        public async Task Read_ReturnsNotFoundResult_WhenEntityNotFound()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest();
+            _mockService.Setup(service => service.Read(It.IsAny<string>())).ReturnsAsync(({entityName}Dto)null);
+
+            // Act
+            var result = await _function.Read(httpRequest, ""non-existent-id"");
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }}
+
+        [Fact]
+        public async Task Update_ReturnsOkResult_WhenEntityFound()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest(""{jsonBody}"");
+            {dtoInstantiation}
+            _mockService.Setup(service => service.Update(It.IsAny<string>(), It.IsAny<{entityName}Dto>())).ReturnsAsync(dto);
+
+            // Act
+            var result = await _function.Update(httpRequest, ""Test Id"");
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnValue = Assert.IsType<{entityName}Dto>(okResult.Value);
+            Assert.Equal(dto.Id, returnValue.Id);
+        }}
+
+        [Fact]
+        public async Task Update_ReturnsNotFoundResult_WhenEntityNotFound()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest(""{jsonBody}"");
+            _mockService.Setup(service => service.Update(It.IsAny<string>(), It.IsAny<{entityName}Dto>())).ReturnsAsync(({entityName}Dto)null);
+
+            // Act
+            var result = await _function.Update(httpRequest, ""non-existent-id"");
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }}
+
+        [Fact]
+        public async Task Delete_ReturnsOkResult_WhenEntityDeleted()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest();
+            _mockService.Setup(service => service.Delete(It.IsAny<string>())).ReturnsAsync(true);
+
+            // Act
+            var result = await _function.Delete(httpRequest, ""1"");
+
+            // Assert
+            Assert.IsType<OkResult>(result);
+        }}
+
+        [Fact]
+        public async Task Delete_ReturnsNotFoundResult_WhenEntityNotFound()
+        {{
+            // Arrange
+            var httpRequest = CreateHttpRequest();
+            _mockService.Setup(service => service.Delete(It.IsAny<string>())).ReturnsAsync(false);
+
+            // Act
+            var result = await _function.Delete(httpRequest, ""non-existent-id"");
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }}
+
+        private HttpRequest CreateHttpRequest(string body = """")
+        {{
+            var context = new DefaultHttpContext();
+            var request = context.Request;
+            if (!string.IsNullOrEmpty(body))
+            {{
+                var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(body));
+                request.Body = stream;
+                stream.Seek(0, SeekOrigin.Begin);
+            }}
+            return request;
+        }}
+    }}
+}}
+";
+
+    // Write the generated content to the specified file path
+    File.WriteAllText(outputFilePath, content);
+#>

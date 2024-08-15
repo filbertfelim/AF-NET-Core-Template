@@ -1,0 +1,47 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.IO" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Threading.Tasks" #>
+
+<#
+    // modifiable
+    string entityName = "Product";
+    string ServiceProjectName = "Service";
+    string DALProjectName = "DAL";
+    string rootFolder = "TestProject";
+
+    // don't modify this
+    string namespaceName = $"{rootFolder}.{ServiceProjectName}.Interfaces";
+
+    // Determine the output folder relative to the template file
+    string templateDirectory = Path.GetDirectoryName(Host.TemplateFile);
+    string outputFolder = Path.Combine(templateDirectory, $"../{ServiceProjectName}/Interfaces");
+
+    if (!Directory.Exists(outputFolder))
+    {
+        Directory.CreateDirectory(outputFolder);
+    }
+
+    // Determine the output file path
+    string outputFilePath = Path.Combine(outputFolder, $"I{entityName}Service.cs");
+
+    // Generate the content
+    string content = $@"
+using {rootFolder}.{DALProjectName}.DTO;
+
+namespace {namespaceName}
+{{
+    public interface I{entityName}Service
+    {{
+        Task<{entityName}Dto> Create({entityName}Dto dto);
+        Task<{entityName}Dto> Read(string id);
+        Task<{entityName}Dto> Update(string id, {entityName}Dto dto);
+        Task<bool> Delete(string id);
+    }}
+}}";
+
+    // Write the content to the specified file path
+    System.IO.File.WriteAllText(outputFilePath, content);
+#>

@@ -1,0 +1,42 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.IO" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+
+<#
+    // modifiable
+    string entityName = "Product";
+    string DALProjectName = "DAL";
+    string rootFolder = "TestProject";
+
+    // don't modify this
+    string namespaceName = $"{rootFolder}.{DALProjectName}.Models";
+
+    // Determine the output folder relative to the template file
+    string templateDirectory = Path.GetDirectoryName(Host.TemplateFile);
+    string outputFolder = Path.Combine(templateDirectory, $"../{DALProjectName}/Models");
+
+    if (!Directory.Exists(outputFolder))
+    {
+        Directory.CreateDirectory(outputFolder);
+    }
+
+    // Determine the output file path
+    string outputFilePath = Path.Combine(outputFolder, $"{entityName}.cs");
+
+    // Generate the content
+    string content = $@"
+namespace {namespaceName}
+{{
+    public class {entityName}
+    {{
+        public string Id {{ get; set; }}
+        public string Name {{ get; set; }}
+        // Add other properties as needed or connect to SQL server to generate schema models
+    }}
+}}";
+
+    // Write the content to the specified file path
+    File.WriteAllText(outputFilePath, content);
+#>
