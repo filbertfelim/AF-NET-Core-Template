@@ -1,0 +1,12 @@
+<#@ template language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System" #>
+
+<#
+// Centralized settings
+string entityName = "Product";
+string ApiProjectName = "Api";
+string ServiceProjectName = "Service";
+string DALProjectName = "DAL";
+string rootFolder = "TestProject";
+#>

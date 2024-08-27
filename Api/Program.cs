@@ -10,6 +10,9 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
     
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductRepository, ProductRepository>();
         })

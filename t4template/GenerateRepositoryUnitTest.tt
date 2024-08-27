@@ -1,14 +1,10 @@
 <#@ template language="C#" hostspecific="true" #>
+<#@ include file="T4Settings.ttinclude" #>
 <#@ output extension=".cs" #>
 <#@ import namespace="System" #>
 <#@ import namespace="System.IO" #>
 
 <#
-    // Parameters
-    string entityName = "Product";
-    string DALProjectName = "DAL";
-    string rootFolder = "TestProject";
-    
     string modelNamespace = $"{rootFolder}.{DALProjectName}.Models"; 
     string repositoryNamespace = $"{rootFolder}.{DALProjectName}.Interfaces"; 
     string testNamespace = $"{rootFolder}.{DALProjectName}.Tests"; 

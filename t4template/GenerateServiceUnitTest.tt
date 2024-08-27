@@ -1,15 +1,10 @@
 <#@ template language="C#" hostspecific="true" #>
+<#@ include file="T4Settings.ttinclude" #>
 <#@ output extension=".cs" #>
 <#@ import namespace="System" #>
 <#@ import namespace="System.IO" #>
 
 <#
-    // modifiable
-    string entityName = "Product";
-    string ServiceProjectName = "Service";
-    string DALProjectName = "DAL";
-    string rootFolder = "TestProject";
-
     // don't modify this
     string dtoNamespace = $"{rootFolder}.{DALProjectName}.DTO";
     string modelNamespace = $"{rootFolder}.{DALProjectName}.Models";

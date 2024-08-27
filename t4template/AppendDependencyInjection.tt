@@ -1,15 +1,9 @@
 <#@ template language="C#" hostspecific="true" #>
+<#@ include file="T4Settings.ttinclude" #>
 <#@ import namespace="System" #>
 <#@ import namespace="System.IO" #>
 
 <#
-// modifiable
-string entityName = "Product";
-string ApiProjectName = "Api";
-string ServiceProjectName = "Service";
-string DALProjectName = "DAL";
-string rootFolder = "TestProject";
-
 // don't modify this
 string serviceInterfaceName = $"I{entityName}Service";
 string serviceClassName = $"{entityName}Service";

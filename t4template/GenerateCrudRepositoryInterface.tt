@@ -1,4 +1,5 @@
 <#@ template language="C#" hostspecific="true" #>
+<#@ include file="T4Settings.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.IO" #>
 <#@ import namespace="System" #>
@@ -6,11 +7,6 @@
 <#@ import namespace="System.Threading.Tasks" #>
 
 <#
-    // modifiable
-    string entityName = "Product";
-    string DALProjectName = "DAL";
-    string rootFolder = "TestProject";
-
     // don't modify this
     string namespaceName = $"{rootFolder}.{DALProjectName}.Interfaces";
 
